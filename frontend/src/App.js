@@ -200,13 +200,6 @@ function App() {
   if (!currentUser) {
     return (
       <div className="min-h-screen bg-gray-50">
-        <div className="bg-white shadow">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="flex justify-between h-16 items-center">
-              <h1 className="text-xl font-bold text-gray-900">Task Tracker</h1>
-            </div>
-          </div>
-        </div>
         <Login onLogin={handleLogin} onError={(msg) => setError(msg)} />
       </div>
     );

@@ -190,131 +190,127 @@ const TaskList = ({
   const sortedTasks = getSortedTasks();
 
   return (
-    <div className="bg-white rounded-lg shadow overflow-hidden">
-      <div className="overflow-x-auto">
-        <table className="min-w-full divide-y divide-gray-200">
-          <thead className="bg-gray-50">
-            <tr>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                TITLE
-              </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                STATUS
-              </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                PRIORITY
-              </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                DUE DATE
-              </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                ASSIGNEE
-              </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                ACTIONS
-              </th>
-            </tr>
-          </thead>
-          <tbody className="bg-white divide-y divide-gray-200">
-            {sortedTasks.map((task) => (
-              <tr
-                key={task.id}
-                className={`${task.completed ? "bg-green-50" : ""} 
-                  ${isAssignedToCurrentUser(task) ? "bg-blue-50" : ""}
-                  ${
-                    searchTerm &&
-                    task.title.toLowerCase().includes(searchTerm.toLowerCase())
-                      ? "bg-yellow-50"
-                      : ""
-                  } hover:bg-gray-50`}
-              >
-                <td className="px-6 py-4 whitespace-nowrap">
-                  <div className="flex items-center">
-                    <div className="ml-4">
-                      <div className="text-sm font-medium text-gray-900">
-                        {highlightSearchTerm(task.title, searchTerm)}
-                        {isAssignedToCurrentUser(task) && (
-                          <span className="ml-2 inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-800">
-                            Yours
-                          </span>
-                        )}
-                      </div>
-                      <div className="text-sm text-gray-500">
-                        {task.description}
-                      </div>
+    <div className="bg-white rounded-lg shadow">
+      <table className="w-full table-fixed divide-y divide-gray-200">
+        <thead className="bg-gray-50">
+          <tr>
+            <th className="w-1/4 px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+              TITLE
+            </th>
+            <th className="w-1/12 px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+              STATUS
+            </th>
+            <th className="w-1/12 px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+              PRIORITY
+            </th>
+            <th className="w-1/8 px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+              DUE DATE
+            </th>
+            <th className="w-1/8 px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+              ASSIGNEE
+            </th>
+            <th className="w-1/6 px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+              ACTIONS
+            </th>
+          </tr>
+        </thead>
+        <tbody className="bg-white divide-y divide-gray-200">
+          {sortedTasks.map((task) => (
+            <tr
+              key={task.id}
+              className={`${task.completed ? "bg-green-50" : ""} 
+                ${isAssignedToCurrentUser(task) ? "bg-blue-50" : ""}
+                ${
+                  searchTerm &&
+                  task.title.toLowerCase().includes(searchTerm.toLowerCase())
+                    ? "bg-yellow-50"
+                    : ""
+                } hover:bg-gray-50`}
+            >
+              <td className="px-3 py-3">
+                <div className="flex items-center">
+                  <div>
+                    <div className="text-sm font-medium text-gray-900 truncate">
+                      {highlightSearchTerm(task.title, searchTerm)}
+                      {isAssignedToCurrentUser(task) && (
+                        <span className="ml-2 inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-800">
+                          Yours
+                        </span>
+                      )}
+                    </div>
+                    <div className="text-xs text-gray-500 truncate">
+                      {task.description}
                     </div>
                   </div>
-                </td>
+                </div>
+              </td>
 
-                <td className="px-6 py-4 whitespace-nowrap">
-                  <span
-                    className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
+              <td className="px-3 py-3">
+                <span
+                  className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
+                    task.completed
+                      ? "bg-green-100 text-green-800"
+                      : "bg-yellow-100 text-yellow-800"
+                  }`}
+                >
+                  {task.completed ? "Completed" : "Active"}
+                </span>
+              </td>
+
+              <td className="px-3 py-3">
+                <span
+                  className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${getPriorityClass(
+                    task.priority
+                  )}`}
+                >
+                  {task.priority === "high"
+                    ? "High"
+                    : task.priority === "medium"
+                    ? "Medium"
+                    : "Low"}
+                </span>
+              </td>
+
+              <td className="px-3 py-3">
+                <span className={getDueDateClass(task.dueDate, task.completed)}>
+                  {formatDate(task.dueDate)}
+                </span>
+              </td>
+
+              <td className="px-3 py-3 text-xs text-gray-500">
+                {getUserName(task.assigneeId)}
+              </td>
+
+              <td className="px-3 py-3 text-xs">
+                <div className="flex flex-wrap gap-1">
+                  <button
+                    onClick={() => onToggleComplete(task.id, task.completed)}
+                    className={`px-1 py-1 rounded-md ${
                       task.completed
-                        ? "bg-green-100 text-green-800"
-                        : "bg-yellow-100 text-yellow-800"
+                        ? "bg-yellow-100 text-yellow-800 hover:bg-yellow-200"
+                        : "bg-green-100 text-green-800 hover:bg-green-200"
                     }`}
                   >
-                    {task.completed ? "Completed" : "Active"}
-                  </span>
-                </td>
-
-                <td className="px-6 py-4 whitespace-nowrap">
-                  <span
-                    className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${getPriorityClass(
-                      task.priority
-                    )}`}
+                    {task.completed ? "Mark Undone" : "Mark Done"}
+                  </button>
+                  <button
+                    onClick={() => onEdit(task)}
+                    className="px-1 py-1 bg-blue-100 text-blue-800 rounded-md hover:bg-blue-200"
                   >
-                    {task.priority === "high"
-                      ? "High"
-                      : task.priority === "medium"
-                      ? "Medium"
-                      : "Low"}
-                  </span>
-                </td>
-
-                <td className="px-6 py-4 whitespace-nowrap">
-                  <span
-                    className={getDueDateClass(task.dueDate, task.completed)}
+                    Edit
+                  </button>
+                  <button
+                    onClick={() => onDelete(task.id)}
+                    className="px-1 py-1 bg-red-100 text-red-800 rounded-md hover:bg-red-200"
                   >
-                    {formatDate(task.dueDate)}
-                  </span>
-                </td>
-
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                  {getUserName(task.assigneeId)}
-                </td>
-
-                <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                  <div className="flex space-x-2">
-                    <button
-                      onClick={() => onToggleComplete(task.id, task.completed)}
-                      className={`px-2 py-1 rounded-md text-xs ${
-                        task.completed
-                          ? "bg-yellow-100 text-yellow-800 hover:bg-yellow-200"
-                          : "bg-green-100 text-green-800 hover:bg-green-200"
-                      }`}
-                    >
-                      {task.completed ? "Mark Undone" : "Mark Done"}
-                    </button>
-                    <button
-                      onClick={() => onEdit(task)}
-                      className="px-2 py-1 bg-blue-100 text-blue-800 rounded-md text-xs hover:bg-blue-200"
-                    >
-                      Edit
-                    </button>
-                    <button
-                      onClick={() => onDelete(task.id)}
-                      className="px-2 py-1 bg-red-100 text-red-800 rounded-md text-xs hover:bg-red-200"
-                    >
-                      Delete
-                    </button>
-                  </div>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+                    Delete
+                  </button>
+                </div>
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
     </div>
   );
 };
