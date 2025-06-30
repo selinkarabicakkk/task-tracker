@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from "react";
 import TaskForm from "./components/TaskForm";
 import TaskList from "./components/TaskList";
+import Login from "./components/Login";
+import UserProfile from "./components/UserProfile";
 import axios from "axios";
 
 function App() {
@@ -12,12 +14,35 @@ function App() {
   const [activeTab, setActiveTab] = useState("all");
   const [searchTerm, setSearchTerm] = useState("");
   const [isSearching, setIsSearching] = useState(false);
+  const [currentUser, setCurrentUser] = useState(null);
 
   useEffect(() => {
-    fetchData();
+    // Check if user is already logged in from localStorage
+    const savedUser = localStorage.getItem("user");
+    if (savedUser) {
+      try {
+        setCurrentUser(JSON.parse(savedUser));
+      } catch (e) {
+        console.error("Error parsing saved user:", e);
+        localStorage.removeItem("user");
+      }
+    }
   }, []);
 
   useEffect(() => {
+    if (currentUser) {
+      fetchData();
+    } else {
+      // If no user is logged in, reset tasks
+      setTasks([]);
+      setUsers([]);
+      setLoading(false);
+    }
+  }, [currentUser]);
+
+  useEffect(() => {
+    if (!currentUser) return;
+
     const delayDebounceFn = setTimeout(() => {
       if (searchTerm) {
         searchTasks(searchTerm);
@@ -27,13 +52,15 @@ function App() {
     }, 500);
 
     return () => clearTimeout(delayDebounceFn);
-  }, [searchTerm]);
+  }, [searchTerm, currentUser]);
 
   const fetchData = async () => {
+    if (!currentUser) return;
+
     try {
       setLoading(true);
       const [tasksResponse, usersResponse] = await Promise.all([
-        axios.get("/api/tasks"),
+        axios.get(`/api/tasks`),
         axios.get("/api/users"),
       ]);
 
@@ -50,6 +77,8 @@ function App() {
   };
 
   const searchTasks = async (query) => {
+    if (!currentUser) return;
+
     try {
       setIsSearching(true);
       const response = await axios.get(
@@ -74,6 +103,8 @@ function App() {
   };
 
   const addTask = async (task) => {
+    if (!currentUser) return;
+
     try {
       const response = await axios.post("/api/tasks", task);
       setTasks([...tasks, response.data]);
@@ -84,9 +115,9 @@ function App() {
   };
 
   const updateTask = async (id, updatedTask) => {
-    try {
-      console.log("Updating task with data:", updatedTask);
+    if (!currentUser) return;
 
+    try {
       if (updatedTask.dueDate && typeof updatedTask.dueDate === "string") {
         if (!updatedTask.dueDate.includes("T")) {
           updatedTask.dueDate = new Date(updatedTask.dueDate).toISOString();
@@ -94,9 +125,6 @@ function App() {
       }
 
       const response = await axios.put(`/api/tasks/${id}`, updatedTask);
-
-      console.log("Server response:", response.data);
-
       setTasks(tasks.map((task) => (task.id === id ? response.data : task)));
       setEditTask(null);
     } catch (err) {
@@ -106,6 +134,8 @@ function App() {
   };
 
   const deleteTask = async (id) => {
+    if (!currentUser) return;
+
     try {
       await axios.delete(`/api/tasks/${id}`);
       setTasks(tasks.filter((task) => task.id !== id));
@@ -116,6 +146,8 @@ function App() {
   };
 
   const toggleTaskCompletion = async (id, completed) => {
+    if (!currentUser) return;
+
     try {
       const taskToUpdate = tasks.find((task) => task.id === id);
       if (!taskToUpdate) {
@@ -135,7 +167,6 @@ function App() {
   };
 
   const startEditTask = (task) => {
-    console.log("Editing task:", task);
     setEditTask(task);
   };
 
@@ -154,18 +185,46 @@ function App() {
     }
   };
 
+  const handleLogin = (user) => {
+    setCurrentUser(user);
+  };
+
+  const handleLogout = () => {
+    localStorage.removeItem("user");
+    setCurrentUser(null);
+    setTasks([]);
+    setError(null);
+  };
+
+  // If no user is logged in, show login screen
+  if (!currentUser) {
+    return (
+      <div className="min-h-screen bg-gray-50">
+        <div className="bg-white shadow">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="flex justify-between h-16 items-center">
+              <h1 className="text-xl font-bold text-gray-900">Task Tracker</h1>
+            </div>
+          </div>
+        </div>
+        <Login onLogin={handleLogin} onError={(msg) => setError(msg)} />
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-gray-100">
       <div className="bg-white shadow">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between h-16 items-center">
             <h1 className="text-xl font-bold text-gray-900">Task Tracker</h1>
-            <div className="flex items-center">
+            <div className="flex items-center space-x-4">
               <span className="relative inline-block">
                 <span className="inline-flex items-center px-3 py-1 rounded-md bg-blue-50 text-sm font-medium text-blue-700">
                   {tasks.length} Tasks
                 </span>
               </span>
+              <UserProfile user={currentUser} onLogout={handleLogout} />
             </div>
           </div>
         </div>
@@ -198,29 +257,66 @@ function App() {
         )}
 
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
-          <div className="lg:col-span-1">
+          <div className="col-span-1">
             <TaskForm
-              addTask={addTask}
-              updateTask={updateTask}
-              editTask={editTask}
-              cancelEdit={cancelEdit}
+              onSubmit={addTask}
               users={users}
+              editTask={editTask}
+              onUpdate={updateTask}
+              onCancel={cancelEdit}
             />
           </div>
 
-          <div className="lg:col-span-3">
-            <div className="bg-white shadow rounded-lg mb-6">
-              <div className="p-4 border-b border-gray-200">
-                <div className="flex items-center mb-2">
-                  <div className="relative flex-grow">
-                    <input
-                      type="text"
-                      placeholder="Search tasks by title..."
-                      className="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md leading-5 bg-white placeholder-gray-500 focus:outline-none focus:placeholder-gray-400 focus:border-blue-300 focus:ring focus:ring-blue-200 focus:ring-opacity-50"
-                      value={searchTerm}
-                      onChange={handleSearchChange}
-                    />
-                    <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
+          <div className="col-span-1 lg:col-span-3">
+            <div className="bg-white shadow rounded-lg">
+              <div className="p-4 border-b border-gray-200 flex flex-col sm:flex-row justify-between items-start sm:items-center space-y-2 sm:space-y-0">
+                <div className="flex space-x-2">
+                  <button
+                    className={`px-3 py-1.5 text-sm font-medium rounded-md ${
+                      activeTab === "all"
+                        ? "bg-blue-50 text-blue-700"
+                        : "text-gray-500 hover:text-gray-700"
+                    }`}
+                    onClick={() => setActiveTab("all")}
+                  >
+                    All Tasks
+                  </button>
+                  <button
+                    className={`px-3 py-1.5 text-sm font-medium rounded-md ${
+                      activeTab === "active"
+                        ? "bg-blue-50 text-blue-700"
+                        : "text-gray-500 hover:text-gray-700"
+                    }`}
+                    onClick={() => setActiveTab("active")}
+                  >
+                    Active
+                  </button>
+                  <button
+                    className={`px-3 py-1.5 text-sm font-medium rounded-md ${
+                      activeTab === "completed"
+                        ? "bg-blue-50 text-blue-700"
+                        : "text-gray-500 hover:text-gray-700"
+                    }`}
+                    onClick={() => setActiveTab("completed")}
+                  >
+                    Completed
+                  </button>
+                </div>
+
+                <div className="relative w-full sm:w-64">
+                  <input
+                    type="text"
+                    className="block w-full rounded-md border-0 py-1.5 pl-3 pr-10 text-gray-900 ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-blue-600 sm:text-sm sm:leading-6"
+                    placeholder="Search tasks..."
+                    value={searchTerm}
+                    onChange={handleSearchChange}
+                  />
+                  {searchTerm && (
+                    <button
+                      type="button"
+                      className="absolute inset-y-0 right-0 flex items-center pr-3"
+                      onClick={clearSearch}
+                    >
                       <svg
                         className="h-5 w-5 text-gray-400"
                         xmlns="http://www.w3.org/2000/svg"
@@ -230,78 +326,26 @@ function App() {
                       >
                         <path
                           fillRule="evenodd"
-                          d="M8 4a4 4 0 100 8 4 4 0 000-8zM2 8a6 6 0 1110.89 3.476l4.817 4.817a1 1 0 01-1.414 1.414l-4.816-4.816A6 6 0 012 8z"
+                          d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z"
                           clipRule="evenodd"
                         />
                       </svg>
-                    </div>
-                    {searchTerm && (
-                      <div className="absolute inset-y-0 right-0 flex items-center pr-3">
-                        <button
-                          onClick={clearSearch}
-                          className="text-gray-400 hover:text-gray-500 focus:outline-none"
-                        >
-                          <svg
-                            className="h-5 w-5"
-                            xmlns="http://www.w3.org/2000/svg"
-                            viewBox="0 0 20 20"
-                            fill="currentColor"
-                          >
-                            <path
-                              fillRule="evenodd"
-                              d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z"
-                              clipRule="evenodd"
-                            />
-                          </svg>
-                        </button>
-                      </div>
-                    )}
-                  </div>
+                    </button>
+                  )}
                 </div>
-                <nav className="-mb-px flex" aria-label="Tabs">
-                  <button
-                    onClick={() => setActiveTab("all")}
-                    className={`${
-                      activeTab === "all"
-                        ? "border-blue-500 text-blue-600"
-                        : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
-                    } whitespace-nowrap py-4 px-4 border-b-2 font-medium text-sm flex-1 text-center`}
-                  >
-                    All Tasks
-                  </button>
-                  <button
-                    onClick={() => setActiveTab("active")}
-                    className={`${
-                      activeTab === "active"
-                        ? "border-yellow-500 text-yellow-600"
-                        : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
-                    } whitespace-nowrap py-4 px-4 border-b-2 font-medium text-sm flex-1 text-center`}
-                  >
-                    In Progress
-                  </button>
-                  <button
-                    onClick={() => setActiveTab("completed")}
-                    className={`${
-                      activeTab === "completed"
-                        ? "border-green-500 text-green-600"
-                        : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
-                    } whitespace-nowrap py-4 px-4 border-b-2 font-medium text-sm flex-1 text-center`}
-                  >
-                    Completed
-                  </button>
-                </nav>
               </div>
-            </div>
 
-            <TaskList
-              tasks={getFilteredTasks()}
-              users={users}
-              loading={loading || isSearching}
-              toggleTaskCompletion={toggleTaskCompletion}
-              deleteTask={deleteTask}
-              startEditTask={startEditTask}
-              searchTerm={searchTerm}
-            />
+              <TaskList
+                tasks={getFilteredTasks()}
+                users={users}
+                onDelete={deleteTask}
+                onToggleComplete={toggleTaskCompletion}
+                onEdit={startEditTask}
+                loading={loading}
+                isSearching={isSearching}
+                searchTerm={searchTerm}
+              />
+            </div>
           </div>
         </div>
       </div>

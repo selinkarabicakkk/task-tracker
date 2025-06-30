@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 
-const TaskForm = ({ addTask, updateTask, editTask, cancelEdit, users }) => {
+const TaskForm = ({ onSubmit, onUpdate, editTask, onCancel, users }) => {
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [assigneeId, setAssigneeId] = useState("");
@@ -164,16 +164,16 @@ const TaskForm = ({ addTask, updateTask, editTask, cancelEdit, users }) => {
     console.log("Submitting task data:", taskData);
 
     if (editTask) {
-      updateTask(editTask.id, taskData);
+      onUpdate(editTask.id, taskData);
     } else {
-      addTask(taskData);
+      onSubmit(taskData);
     }
 
     resetForm();
   };
 
   const handleCancel = () => {
-    cancelEdit();
+    onCancel();
     resetForm();
   };
 

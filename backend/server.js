@@ -20,11 +20,36 @@ const initializeData = () => {
     const initialData = {
       tasks: [],
       users: [
-        { id: 1, name: "Edward Sinclair" },
-        { id: 2, name: "Emily Clarke" },
-        { id: 3, name: "Charlotte Hastings" },
-        { id: 4, name: "Oliver Fitzgerald" },
-        { id: 5, name: "George Wentworth" },
+        {
+          id: 1,
+          name: "Edward Sinclair",
+          email: "edward@example.com",
+          password: "password123",
+        },
+        {
+          id: 2,
+          name: "Emily Clarke",
+          email: "emily@example.com",
+          password: "password123",
+        },
+        {
+          id: 3,
+          name: "Charlotte Hastings",
+          email: "charlotte@example.com",
+          password: "password123",
+        },
+        {
+          id: 4,
+          name: "Oliver Fitzgerald",
+          email: "oliver@example.com",
+          password: "password123",
+        },
+        {
+          id: 5,
+          name: "George Wentworth",
+          email: "george@example.com",
+          password: "password123",
+        },
       ],
     };
     fs.writeFileSync(DATA_FILE, JSON.stringify(initialData, null, 2));
@@ -60,22 +85,75 @@ const validateDate = (dateString) => {
   }
 };
 
+// Authentication endpoints
+app.post("/api/auth/login", (req, res) => {
+  const { email, password } = req.body;
+
+  if (!email || !password) {
+    return res.status(400).json({ error: "Email and password are required" });
+  }
+
+  // Find user by email
+  const user = data.users.find((user) => user.email === email);
+
+  if (!user) {
+    return res.status(401).json({ error: "Invalid email or password" });
+  }
+
+  // Simple password check (not secure for production)
+  if (user.password !== password) {
+    return res.status(401).json({ error: "Invalid email or password" });
+  }
+
+  // Remove password from response
+  const { password: _, ...userWithoutPassword } = user;
+
+  return res.status(200).json({
+    message: "Login successful",
+    user: userWithoutPassword,
+  });
+});
+
+app.get("/api/auth/user", (req, res) => {
+  const { userId } = req.query;
+
+  if (!userId) {
+    return res.status(400).json({ error: "User ID is required" });
+  }
+
+  const user = data.users.find((user) => user.id === parseInt(userId));
+
+  if (!user) {
+    return res.status(404).json({ error: "User not found" });
+  }
+
+  // Remove password from response
+  const { password, ...userWithoutPassword } = user;
+
+  return res.status(200).json(userWithoutPassword);
+});
+
 app.get("/api/tasks", (req, res) => {
-  const { search } = req.query;
+  const { search, userId } = req.query;
+
+  let filteredTasks = [...data.tasks];
 
   if (search) {
     const searchLowerCase = search.toLowerCase();
-    const filteredTasks = data.tasks.filter((task) =>
+    filteredTasks = filteredTasks.filter((task) =>
       task.title.toLowerCase().includes(searchLowerCase)
     );
-    return res.json(filteredTasks);
   }
 
-  res.json(data.tasks);
+  return res.json(filteredTasks);
 });
 
 app.get("/api/users", (req, res) => {
-  res.json(data.users);
+  // Return users without passwords
+  const usersWithoutPasswords = data.users.map(
+    ({ password, ...userData }) => userData
+  );
+  res.json(usersWithoutPasswords);
 });
 
 app.post("/api/tasks", (req, res) => {

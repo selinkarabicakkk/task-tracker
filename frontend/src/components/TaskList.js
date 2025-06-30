@@ -4,15 +4,37 @@ const TaskList = ({
   tasks,
   users,
   loading,
-  toggleTaskCompletion,
-  deleteTask,
-  startEditTask,
+  onToggleComplete,
+  onDelete,
+  onEdit,
   searchTerm,
+  isSearching,
 }) => {
   const getUserName = (userId) => {
     if (!userId) return "Unassigned";
     const user = users.find((user) => user.id === parseInt(userId));
     return user ? user.name : "Unknown User";
+  };
+
+  // Mevcut kullanıcıyı localStorage'dan al
+  const getCurrentUser = () => {
+    try {
+      const savedUser = localStorage.getItem("user");
+      if (savedUser) {
+        return JSON.parse(savedUser);
+      }
+    } catch (e) {
+      console.error("Error parsing saved user:", e);
+    }
+    return null;
+  };
+
+  const currentUser = getCurrentUser();
+
+  // Görevi mevcut kullanıcıya atanmış mı kontrol et
+  const isAssignedToCurrentUser = (task) => {
+    if (!currentUser) return false;
+    return task.assigneeId === currentUser.id.toString();
   };
 
   const getPriorityClass = (priority) => {
@@ -124,11 +146,13 @@ const TaskList = ({
     });
   };
 
-  if (loading) {
+  if (loading || isSearching) {
     return (
       <div className="flex flex-col items-center justify-center p-8 bg-white rounded-lg shadow">
-        <div className="w-12 h-12 border-4 border-t-accent rounded-full animate-spin"></div>
-        <p className="mt-4 text-accent font-medium">Loading tasks...</p>
+        <div className="w-12 h-12 border-4 border-t-blue-500 rounded-full animate-spin"></div>
+        <p className="mt-4 text-blue-500 font-medium">
+          {isSearching ? "Searching tasks..." : "Loading tasks..."}
+        </p>
       </div>
     );
   }
@@ -195,48 +219,59 @@ const TaskList = ({
             {sortedTasks.map((task) => (
               <tr
                 key={task.id}
-                className={`${task.completed ? "bg-green-50" : ""} ${
-                  searchTerm &&
-                  task.title.toLowerCase().includes(searchTerm.toLowerCase())
-                    ? "bg-blue-50"
-                    : ""
-                }`}
+                className={`${task.completed ? "bg-green-50" : ""} 
+                  ${isAssignedToCurrentUser(task) ? "bg-blue-50" : ""}
+                  ${
+                    searchTerm &&
+                    task.title.toLowerCase().includes(searchTerm.toLowerCase())
+                      ? "bg-yellow-50"
+                      : ""
+                  } hover:bg-gray-50`}
               >
                 <td className="px-6 py-4 whitespace-nowrap">
-                  <div className="text-sm font-medium text-gray-900">
-                    {searchTerm
-                      ? highlightSearchTerm(task.title, searchTerm)
-                      : task.title}
-                  </div>
-                  {task.description && (
-                    <div className="text-sm text-gray-500 truncate max-w-xs">
-                      {task.description}
+                  <div className="flex items-center">
+                    <div className="ml-4">
+                      <div className="text-sm font-medium text-gray-900">
+                        {highlightSearchTerm(task.title, searchTerm)}
+                        {isAssignedToCurrentUser(task) && (
+                          <span className="ml-2 inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-800">
+                            Yours
+                          </span>
+                        )}
+                      </div>
+                      <div className="text-sm text-gray-500">
+                        {task.description}
+                      </div>
                     </div>
-                  )}
+                  </div>
                 </td>
+
                 <td className="px-6 py-4 whitespace-nowrap">
                   <span
-                    className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                    className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
                       task.completed
                         ? "bg-green-100 text-green-800"
                         : "bg-yellow-100 text-yellow-800"
                     }`}
                   >
-                    {task.completed ? "Completed" : "In Progress"}
+                    {task.completed ? "Completed" : "Active"}
                   </span>
                 </td>
+
                 <td className="px-6 py-4 whitespace-nowrap">
                   <span
-                    className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getPriorityClass(
+                    className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${getPriorityClass(
                       task.priority
                     )}`}
                   >
-                    {task.priority
-                      ? task.priority.charAt(0).toUpperCase() +
-                        task.priority.slice(1)
-                      : "Medium"}
+                    {task.priority === "high"
+                      ? "High"
+                      : task.priority === "medium"
+                      ? "Medium"
+                      : "Low"}
                   </span>
                 </td>
+
                 <td className="px-6 py-4 whitespace-nowrap">
                   <span
                     className={getDueDateClass(task.dueDate, task.completed)}
@@ -244,42 +279,36 @@ const TaskList = ({
                     {formatDate(task.dueDate)}
                   </span>
                 </td>
+
                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                   {getUserName(task.assigneeId)}
                 </td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm font-medium space-x-2">
-                  <button
-                    onClick={() =>
-                      toggleTaskCompletion(task.id, task.completed)
-                    }
-                    className={`inline-flex items-center px-2.5 py-1.5 border border-transparent text-xs font-medium rounded ${
-                      task.completed
-                        ? "text-yellow-700 bg-yellow-100 hover:bg-yellow-200"
-                        : "text-green-700 bg-green-100 hover:bg-green-200"
-                    }`}
-                  >
-                    {task.completed ? "Mark Incomplete" : "Mark Complete"}
-                  </button>
-                  <button
-                    onClick={() => startEditTask(task)}
-                    className="inline-flex items-center px-2.5 py-1.5 border border-transparent text-xs font-medium rounded text-blue-700 bg-blue-100 hover:bg-blue-200"
-                  >
-                    Edit
-                  </button>
-                  <button
-                    onClick={() => {
-                      if (
-                        window.confirm(
-                          "Are you sure you want to delete this task?"
-                        )
-                      ) {
-                        deleteTask(task.id);
-                      }
-                    }}
-                    className="inline-flex items-center px-2.5 py-1.5 border border-transparent text-xs font-medium rounded text-red-700 bg-red-100 hover:bg-red-200"
-                  >
-                    Delete
-                  </button>
+
+                <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                  <div className="flex space-x-2">
+                    <button
+                      onClick={() => onToggleComplete(task.id, task.completed)}
+                      className={`px-2 py-1 rounded-md text-xs ${
+                        task.completed
+                          ? "bg-yellow-100 text-yellow-800 hover:bg-yellow-200"
+                          : "bg-green-100 text-green-800 hover:bg-green-200"
+                      }`}
+                    >
+                      {task.completed ? "Mark Undone" : "Mark Done"}
+                    </button>
+                    <button
+                      onClick={() => onEdit(task)}
+                      className="px-2 py-1 bg-blue-100 text-blue-800 rounded-md text-xs hover:bg-blue-200"
+                    >
+                      Edit
+                    </button>
+                    <button
+                      onClick={() => onDelete(task.id)}
+                      className="px-2 py-1 bg-red-100 text-red-800 rounded-md text-xs hover:bg-red-200"
+                    >
+                      Delete
+                    </button>
+                  </div>
                 </td>
               </tr>
             ))}
