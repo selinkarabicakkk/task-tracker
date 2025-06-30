@@ -2,7 +2,8 @@
 
 A modern, responsive task management application designed for teams to efficiently track and organize their tasks. Built with React and Node.js, this application offers a clean user interface with powerful task management features.
 
-![Task Tracker Screenshot](https://i.imgur.com/example.png)
+![Task Tracker Screenshot](./frontend/public/images/screenshot1.png)
+![Task Tracker Screenshot](./frontend/public/images/screenshot2.png)
 
 ## Features
 
