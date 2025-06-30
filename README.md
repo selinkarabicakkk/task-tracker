@@ -152,20 +152,8 @@ task-tracker/
 | DELETE | /api/tasks/:id  | Delete a task                        |
 | GET    | /api/users      | Get all users                        |
 
-## Future Enhancements
-
-- Task categories and labels
-- User registration system
-- Team management features
-- Task comments and attachments
-- Advanced reporting and analytics
-- Dark mode support
-
-## License
-
-This project is licensed under the MIT License - see the LICENSE file for details.
 
 ## Acknowledgments
 
 - Icons and design inspiration from Tailwind UI
-- All team members who contributed to the project
+  
