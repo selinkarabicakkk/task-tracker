@@ -61,6 +61,16 @@ const validateDate = (dateString) => {
 };
 
 app.get("/api/tasks", (req, res) => {
+  const { search } = req.query;
+
+  if (search) {
+    const searchLowerCase = search.toLowerCase();
+    const filteredTasks = data.tasks.filter((task) =>
+      task.title.toLowerCase().includes(searchLowerCase)
+    );
+    return res.json(filteredTasks);
+  }
+
   res.json(data.tasks);
 });
 

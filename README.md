@@ -1,4 +1,4 @@
-# Team Task Tracker
+# Task Tracker
 
 A simple team task tracking application.
 

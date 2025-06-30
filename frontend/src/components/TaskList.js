@@ -7,6 +7,7 @@ const TaskList = ({
   toggleTaskCompletion,
   deleteTask,
   startEditTask,
+  searchTerm,
 }) => {
   const getUserName = (userId) => {
     if (!userId) return "Unassigned";
@@ -75,6 +76,54 @@ const TaskList = ({
     }
   };
 
+  // Arama terimini başlıkta vurgulama fonksiyonu
+  const highlightSearchTerm = (text, term) => {
+    if (!term || !text) return text;
+
+    const regex = new RegExp(`(${term})`, "gi");
+    const parts = text.split(regex);
+
+    return (
+      <>
+        {parts.map((part, index) =>
+          regex.test(part) ? (
+            <span key={index} className="bg-yellow-200">
+              {part}
+            </span>
+          ) : (
+            part
+          )
+        )}
+      </>
+    );
+  };
+
+  // Görevlerin eşleşme derecesine göre sıralanması
+  const getSortedTasks = () => {
+    if (!searchTerm) return tasks;
+
+    const searchTermLower = searchTerm.toLowerCase();
+
+    return [...tasks].sort((taskA, taskB) => {
+      // Başlıkta eşleşme var mı kontrol et
+      const titleAMatch = taskA.title.toLowerCase().includes(searchTermLower);
+      const titleBMatch = taskB.title.toLowerCase().includes(searchTermLower);
+
+      // Her iki görevde de eşleşme varsa, eşleşme pozisyonuna göre sırala
+      if (titleAMatch && titleBMatch) {
+        const posA = taskA.title.toLowerCase().indexOf(searchTermLower);
+        const posB = taskB.title.toLowerCase().indexOf(searchTermLower);
+        return posA - posB;
+      }
+
+      // Sadece bir görevde eşleşme varsa, onu yukarı taşı
+      if (titleAMatch) return -1;
+      if (titleBMatch) return 1;
+
+      return 0;
+    });
+  };
+
   if (loading) {
     return (
       <div className="flex flex-col items-center justify-center p-8 bg-white rounded-lg shadow">
@@ -104,10 +153,17 @@ const TaskList = ({
         <h3 className="text-xl font-medium text-gray-500 mb-1">
           No Tasks Found
         </h3>
-        <p className="text-gray-500">There are no tasks yet. Add a new task!</p>
+        <p className="text-gray-500">
+          {searchTerm
+            ? `No tasks match "${searchTerm}"`
+            : "There are no tasks yet. Add a new task!"}
+        </p>
       </div>
     );
   }
+
+  // Görevleri sırala
+  const sortedTasks = getSortedTasks();
 
   return (
     <div className="bg-white rounded-lg shadow overflow-hidden">
@@ -136,11 +192,21 @@ const TaskList = ({
             </tr>
           </thead>
           <tbody className="bg-white divide-y divide-gray-200">
-            {tasks.map((task) => (
-              <tr key={task.id} className={task.completed ? "bg-green-50" : ""}>
+            {sortedTasks.map((task) => (
+              <tr
+                key={task.id}
+                className={`${task.completed ? "bg-green-50" : ""} ${
+                  searchTerm &&
+                  task.title.toLowerCase().includes(searchTerm.toLowerCase())
+                    ? "bg-blue-50"
+                    : ""
+                }`}
+              >
                 <td className="px-6 py-4 whitespace-nowrap">
                   <div className="text-sm font-medium text-gray-900">
-                    {task.title}
+                    {searchTerm
+                      ? highlightSearchTerm(task.title, searchTerm)
+                      : task.title}
                   </div>
                   {task.description && (
                     <div className="text-sm text-gray-500 truncate max-w-xs">
